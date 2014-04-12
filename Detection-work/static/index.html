@@ -1,0 +1,114 @@
+<!doctype html>
+
+<html ng-app="leapapp">
+    <head>
+    <script src="jquery.min.js"></script>
+    <script src="angular.min.js"></script>
+    <script src="sprintf.js"></script>
+    <script src="leap.js"></script>
+    <script src="uinput.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #debug td { width: 100px; text-align: right;}
+        .panel {
+            float: left;
+            border: thin solid black;
+            width: 400px;
+            height: 400px;
+        }
+    </style>
+    </head>
+
+    <body ng-controller="leapctrl"> 
+
+        <h1>Leap stream processing</h1>
+
+        <table id="debug">
+            <tr>
+                <th></th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Z</th>
+            </tr>
+            <tr>
+                <th>Angles</th>
+                <td><span class="angle-x"></span></td>
+                <td><span class="angle-y"></span></td>
+                <td><span class="angle-z"></span></td>
+            </tr>
+            <tr>
+                <th>Position</th>
+                <td><span class="position-x"></span></td>
+                <td><span class="position-y"></span></td>
+                <td><span class="position-z"></span></td>
+            </tr>
+            <tr>
+                <th>Pointer</th>
+                <td><span class="pointer-x"></span></td>
+                <td><span class="pointer-y"></span></td>
+                <td><span class="pointer-z"></span></td>
+            </tr>
+        </table>
+        <div class="panel">
+        <svg width="400" height="400">
+            <circle ng-attr-cx="{{data.palm[X]*400}}"
+                    ng-attr-cy="{{data.palm[Z]*400}}" 
+                    r="30"></circle>
+        </svg>
+        </div>
+        
+        <div class="panel">
+        <svg width="400" height="400">
+            <circle ng-attr-cx="{{data.pos[X]*400}}"
+                    ng-attr-cy="{{data.pos[Y]*400}}" 
+                    r="30"></circle>
+        </svg>
+        </div>
+
+        <div class="panel">
+        <svg width="400" height="400">
+            <circle ng-attr-cx="{{data.ptr[X]*400}}"
+                    ng-attr-cy="{{data.ptr[Y]*400}}"
+                    r="30"></circle>
+        </svg>
+        </div>
+
+    <script>
+        var app = angular.module('leapapp', []);
+        var leap = new LeapStream();
+        var handFilter = new DominantHandFilter(false, 10);
+        var pointerFilter = new DominantPointerFilter(false, 10);
+        var normFilter = new Normalize();
+        var archive = new ArchiveFilter("experiment_100");
+        var debugFilter = new DebugFilter("#debug");
+        Connect(leap, handFilter, pointerFilter, normFilter, archive, debugFilter);
+
+        app.controller('leapctrl', function($scope) {
+            $scope.data = {};
+            var update = new ScopeUpdate($scope, 'data');
+            Connect(debugFilter, update);
+        });
+
+        app.directive('overlay', function() {
+            return function($scope, element, attrs) {
+                var svg = d3.select(element[0]).select('svg');
+                var width = element.width();
+                var height = element.height();
+
+                $scope.size = {
+                    width: width,
+                    height: height
+                }
+                svg.attr('width', width).attr('height', height);
+            }
+        });
+
+        app.filter('angle', function() {
+            return function(input) {
+                if(input == null) return "--.--";
+                return sprintf("%2.2f", input);
+            }
+        });
+    </script>
+    </body>
+</html>
